@@ -6,45 +6,68 @@
  * Licensed under the MIT license.
  */
 
-'use strict';
+"use strict";
 
 module.exports = function(grunt) {
+    var self = this;
+    var exec = require("child_process").exec;
 
-  // Please see the Grunt documentation for more information regarding task
-  // creation: http://gruntjs.com/creating-tasks
+    grunt.registerMultiTask("XamarinBuildAndSign", "Builds and signs your Xamarin.iOS or Xamarin.Android", function() {
+        var data = this.data;
+        var type = data.type;
+        var project = data.project;
+        var configuration = data.configuration;
+        var keychainPassword = data.keychainPassword;
 
-  grunt.registerMultiTask('XamarinBuildAndSign', 'Builds and signs your Xamarin.iOS or Xamarin.Android', function() {
-    // Merge task-specific and/or target-specific options with these defaults.
-    var options = this.options({
-      punctuation: '.',
-      separator: ', '
-    });
-
-    // Iterate over all specified file groups.
-    this.files.forEach(function(f) {
-      // Concat specified files.
-      var src = f.src.filter(function(filepath) {
-        // Warn on and remove invalid source files (if nonull was set).
-        if (!grunt.file.exists(filepath)) {
-          grunt.log.warn('Source file "' + filepath + '" not found.');
-          return false;
-        } else {
-          return true;
+        if (!type) {
+            grunt.fail.fatal("type not specified");
         }
-      }).map(function(filepath) {
-        // Read file source.
-        return grunt.file.read(filepath);
-      }).join(grunt.util.normalizelf(options.separator));
 
-      // Handle options.
-      src += options.punctuation;
+        if (!project) {
+            grunt.fail.fatal("project not specified");
+        }
 
-      // Write the destination file.
-      grunt.file.write(f.dest, src);
+        if (!configuration) {
+            grunt.fail.fatal("configuration not specified");
+        }
 
-      // Print a success message.
-      grunt.log.writeln('File "' + f.dest + '" created.');
+        if (keychainPassword) {
+            exec("security -v unlock-keychain -p " + keychainPassword + " '$HOME/Library/Keychains/login.keychain'", self.execCallback);
+        }
+
+        type.split(",").forEach(function(item) {
+            exec(self.getBuildCommand(item, project, configuration), self.execCallback);
+        });
     });
-  });
 
+    function getBuildCommand(type, project, configuration) {
+        var ios = ["ios", "ipa"];
+        var android = ["android" "apk"];
+
+        if (ios.indexOf(type) !== -1) {
+            return [
+                "/Applications/Xamarin Studio.app/Contents/MacOS/mdtool",
+                "build", 
+                "--configuration:" + configuration + "|iPhone",
+                project
+            ].join(" ");
+        }
+        
+        if (android.indexOf(type) !== -1) {
+            return [
+                "xbuild",
+                "/t:SignAndroidPackage", 
+                "/p:Configuration=" + configuration,
+                project
+            ].join(" ");
+        }
+        
+        grunt.fail.fatal("unrecognized type specified:" + type);
+    }
+
+    function execCallback(error, stdout, stderr) {
+        if (error !== null) {
+            grunt.fail.fatal(error);
+        }
+    }
 };
