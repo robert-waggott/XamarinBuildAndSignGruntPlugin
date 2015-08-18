@@ -10,7 +10,32 @@
 
 module.exports = function(grunt) {
     var self = this;
-    var exec = require("child_process").exec;
+    var exec = require("exec-sync");
+
+    self.getBuildCommand = function(type, project, configuration) {
+        var ios = ["ios", "ipa"];
+        var android = ["android", "apk"];
+
+        if (ios.indexOf(type) !== -1) {
+            return [
+                "'/Applications/Xamarin Studio.app/Contents/MacOS/mdtool'",
+                "build", 
+                "--configuration:'" + configuration + "|iPhone'",
+                project
+            ].join(" ");
+        }
+
+        if (android.indexOf(type) !== -1) {
+            return [
+                "xbuild",
+                "/t:SignAndroidPackage", 
+                "/p:Configuration=" + configuration,
+                project
+            ].join(" ");
+        }
+        
+        grunt.fail.fatal("unrecognized type specified:" + type);
+    };
 
     grunt.registerMultiTask("XamarinBuildAndSign", "Builds and signs your Xamarin.iOS or Xamarin.Android", function() {
         var data = this.data;
@@ -32,42 +57,11 @@ module.exports = function(grunt) {
         }
 
         if (keychainPassword) {
-            exec("security -v unlock-keychain -p " + keychainPassword + " '$HOME/Library/Keychains/login.keychain'", self.execCallback);
+            exec("security -v unlock-keychain -p " + keychainPassword + " '$HOME/Library/Keychains/login.keychain'");
         }
 
-        type.split(",").forEach(function(item) {
-            exec(self.getBuildCommand(item, project, configuration), self.execCallback);
-        });
+        var output = exec(self.getBuildCommand(type.trim().toLowerCase(), project, configuration));
+
+        grunt.log.writeln(output);
     });
-
-    function getBuildCommand(type, project, configuration) {
-        var ios = ["ios", "ipa"];
-        var android = ["android" "apk"];
-
-        if (ios.indexOf(type) !== -1) {
-            return [
-                "/Applications/Xamarin Studio.app/Contents/MacOS/mdtool",
-                "build", 
-                "--configuration:" + configuration + "|iPhone",
-                project
-            ].join(" ");
-        }
-        
-        if (android.indexOf(type) !== -1) {
-            return [
-                "xbuild",
-                "/t:SignAndroidPackage", 
-                "/p:Configuration=" + configuration,
-                project
-            ].join(" ");
-        }
-        
-        grunt.fail.fatal("unrecognized type specified:" + type);
-    }
-
-    function execCallback(error, stdout, stderr) {
-        if (error !== null) {
-            grunt.fail.fatal(error);
-        }
-    }
 };

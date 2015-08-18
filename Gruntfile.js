@@ -11,17 +11,23 @@
 module.exports = function(grunt) {
     grunt.initConfig({
         XamarinBuildAndSign: {
-            forms: {
-                type: "ios, android",
+            ios: {
+                type: "ios",
                 project: "",
                 configuration: "Debug"
-            }
+            },
+            ios: {
+                type: "android",
+                project: "",
+                configuration: "Debug"
+            }            
         }
     });
 
     grunt.loadTasks("tasks");
 
     grunt.registerTask("default", [
-        "XamarinBuildAndSign:forms"
+        "XamarinBuildAndSign:ios",
+        "XamarinBuildAndSign:android"
     ]);
 };
