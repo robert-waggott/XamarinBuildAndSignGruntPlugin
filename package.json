@@ -1,7 +1,7 @@
 {
   "name": "grunt-xamarinbuildandsign",
   "description": "Builds and signs your Xamarin.iOS and/or Xamarin.Android apps",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "homepage": "https://github.com/robert-waggott/XamarinBuildAndSignGruntPlugin",
   "author": {
     "name": "robert.waggott",
